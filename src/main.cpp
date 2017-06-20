@@ -34,7 +34,18 @@ int main()
 
   PID pid;
   // TODO: Initialize the pid variable.
-
+  /**
+     * Hyper parameters Kp, Ki, Kd were selected using grid search approach.
+     * Set: Kp: 0.1, 0.2, 0.3
+     * Set: Ki: 0.001, 0.002, 0.003
+     * Set: Kd: 2.0, 4.0, 8.0
+     *
+     * For all possible combination of (Kp, Ki, Kd) and I ran simulator and
+     * inspected both CTE and quality of navigating the car on the track.
+     *
+     * Finally, picked following values
+     */
+  pid.Init(0.1, 0.0001, 4.0);
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -48,8 +59,8 @@ int main()
         if (event == "telemetry") {
           // j[1] is the data JSON object
           double cte = std::stod(j[1]["cte"].get<std::string>());
-          double speed = std::stod(j[1]["speed"].get<std::string>());
-          double angle = std::stod(j[1]["steering_angle"].get<std::string>());
+          //double speed = std::stod(j[1]["speed"].get<std::string>());
+          //double angle = std::stod(j[1]["steering_angle"].get<std::string>());
           double steer_value;
           /*
           * TODO: Calcuate steering value here, remember the steering value is
@@ -57,9 +68,14 @@ int main()
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
-          
           // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          pid.UpdateError(cte);
+
+          steer_value = pid.TotalError();
+          steer_value = -pid.Kp*pid.p_error - pid.Kd*pid.d_error - pid.Ki*pid.i_error;
+          steer_value = std::max(std::min(1.0, steer_value), -1.0);
+          // std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          std::cout<<"cte "<<cte<<std::endl;
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
